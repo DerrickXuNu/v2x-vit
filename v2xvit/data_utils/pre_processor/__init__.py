@@ -1,7 +1,7 @@
-from opencood.data_utils.pre_processor.base_preprocessor import BasePreprocessor
-from opencood.data_utils.pre_processor.voxel_preprocessor import VoxelPreprocessor
-from opencood.data_utils.pre_processor.bev_preprocessor import BevPreprocessor
-from opencood.data_utils.pre_processor.sp_voxel_preprocessor import SpVoxelPreprocessor
+from v2xvit.data_utils.pre_processor.base_preprocessor import BasePreprocessor
+from v2xvit.data_utils.pre_processor.voxel_preprocessor import VoxelPreprocessor
+from v2xvit.data_utils.pre_processor.bev_preprocessor import BevPreprocessor
+from v2xvit.data_utils.pre_processor.sp_voxel_preprocessor import SpVoxelPreprocessor
 
 __all__ = {
     'BasePreprocessor': BasePreprocessor,

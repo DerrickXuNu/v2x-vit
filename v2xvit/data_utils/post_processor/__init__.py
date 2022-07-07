@@ -1,5 +1,5 @@
-from opencood.data_utils.post_processor.voxel_postprocessor import VoxelPostprocessor
-from opencood.data_utils.post_processor.bev_postprocessor import BevPostprocessor
+from v2xvit.data_utils.post_processor.voxel_postprocessor import VoxelPostprocessor
+from v2xvit.data_utils.post_processor.bev_postprocessor import BevPostprocessor
 
 __all__ = {
     'VoxelPostprocessor': VoxelPostprocessor,
