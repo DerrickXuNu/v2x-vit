@@ -6,7 +6,9 @@ modify the model/training/inference parameters. Specifically, we use **yaml** fi
 important parameters.
 
 ### Config File Location
-All the yaml files should be saved in `opencood/hypes_yaml`, and users should use the `load_yaml()` function in [`opencood/hypes_yaml/yaml_utils.py`](https://github.com/DerrickXuNu/OpenCOOD/blob/main/opencood/hypes_yaml/yaml_utils.py#L8) to load the parameters into a dictionary. 
+To train a model from scratch, all the yaml files should be saved in `v2xvit/hypes_yaml`, and users should use the `load_yaml()` function in [`v2xvit/hypes_yaml/yaml_utils.py`](https://github.com/DerrickXuNu/OpenCOOD/blob/main/opencood/hypes_yaml/yaml_utils.py#L8) to load the parameters into a dictionary.
+
+To train from a saved checkpoint or test, the yaml files should be located with the checkpoint together in the `v2xvit/logs/model_name`.
 
 ### Config Name Style
 We follow the below style to name config yaml files.
@@ -14,8 +16,40 @@ We follow the below style to name config yaml files.
 {backbone}_{fusion_strategy}.yaml
 ```
 
+### Noise Simulation
+Communication noise simulation is defined in the `wild_setting` group in the yaml file.
+```
+wild_setting: # setting related to noise
+  async: true
+  async_mode: 'sim'
+  async_overhead: 100
+  backbone_delay: 10
+  data_size: 1.06
+  loc_err: true
+  ryp_std: 0.2
+  seed: 25
+  transmission_speed: 27
+  xyz_std: 0.2
+```
+`async`: whether add communication delay. <br>
+`aysnc_mode`:  sim or real mode. In sim mode, the delay is a constant while in real mode, the delay has a uniform distribution.
+The major experiment in the paper used sim mode whereas the 'Effects of transmission size' study used real
+ mode. <br>
+`async_overhead`: the communication delay in ms. In sim mode, it represents a constant number. In real mode,
+the systematic async will be a random number from 0 to `aysnc_overhead`. <br>
+`backbone_delay`: an estimate of backbone computation time. Only useful in real mode. <br>
+`data_size`: transmission data size in Mb. Only used in real mode. <br>
+`transmission_speed`: data transmitting speed during communication. By default 27 Mb/s. Only used in real mode. <br>
+`loc_err`: whether to add localization error. <br>
+`xyz_std`: the standard deviation of positional GPS error. <br>
+`ryp_std`: the standard deviation of angular GPS error. <br>
+`seed`: random seed for noise simulation. <strong>please keep it as 25 during testing </strong>.
+
+
+
+
 ### A concrete example
-Now let's go through the `point_pillar_intermediate_fusion.yaml` as an example.
+Now let's go through the `point_pillar_opv2v_fusion.yaml` as an example.
 
 ```yaml
 name: point_pillar_intermediate_fusion # this parameter together with the current timestamp will  define the name of the saved folder for the model. 
@@ -28,6 +62,18 @@ train_params: # the common training parameters
   epoches: 60
   eval_freq: 1
   save_freq: 1
+
+wild_setting: # setting related to noise
+  async: true
+  async_mode: 'sim'
+  async_overhead: 100
+  backbone_delay: 10
+  data_size: 1.06
+  loc_err: true
+  ryp_std: 0.2
+  seed: 25
+  transmission_speed: 27
+  xyz_std: 0.2
 
 fusion:
   core_method: 'IntermediateFusionDataset' # LateFusionDataset, EarlyFusionDataset, and IntermediateFusionDataset are supported
@@ -77,7 +123,7 @@ postprocess:
 
 # model related
 model:
-  core_method: point_pillar_intermediate # trainer will load the corresponding model python file with the same name
+  core_method: point_pillar_opv2v # trainer will load the corresponding model python file with the same name
   args: # detailed parameters of the point pillar model
     voxel_size: *voxel_size 
     lidar_range: *cav_lidar
@@ -98,7 +144,7 @@ model:
       upsample_strides: [1, 2, 4]
       num_upsample_filter: [128, 128, 128]
       compression: 0 # whether to compress the features before fusion to reduce the bandwidth
-
+      backbone_fix: false # whether fix the pointpillar backbone weights during training.
     anchor_num: *achor_num
 
 loss: # loss function
