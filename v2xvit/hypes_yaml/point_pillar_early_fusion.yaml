@@ -1,8 +1,6 @@
 name: point_pillar_early_fusion
-root_dir: '/home/ucla_cav/data/train'
-validate_dir: '/home/ucla_cav/data/validate'
-
-
+root_dir: 'v2xset/train'
+validate_dir: 'v2xset/validate'
 yaml_parser: "load_point_pillar_params"
 
 wild_setting:

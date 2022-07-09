@@ -54,3 +54,32 @@ Our data label format is very similar with the one in [OPV2V](https://github.com
 One important feature of V2XSet is the capability of adding different communication noises. This is done in a post-processing approach through our flexible coding framework. To set different noise, please
 refer to [config yaml tutorial](docs/config_tutorial.md).
 
+## Getting Started
+### Data sequence visualization
+To quickly visualize the LiDAR stream in the V2XSet dataset, first modify the `validate_dir`
+in your `v2xvit/hypes_yaml/visualization.yaml` to the V2XSet data path on your local machine, e.g. `v2xset/validate`,
+and the run the following commond:
+```python
+cd ~/v2x-vit
+python v2xvit/visualization/vis_data_sequence.py [--color_mode ${COLOR_RENDERING_MODE}]
+```
+Arguments Explanation:
+- `color_mode` : str type, indicating the lidar color rendering mode. You can choose from 'constant', 'intensity' or 'z-value'.
+
+### Train your model
+V2X-ViT uses yaml file to configure all the parameters for training. To train your own model
+from scratch or a continued checkpoint, run the following commonds:
+```python
+python v2xvit/tools/train.py --hypes_yaml ${CONFIG_FILE} [--model_dir  ${CHECKPOINT_FOLDER} --half]
+```
+Arguments Explanation:
+- `hypes_yaml`: the path of the training configuration file, e.g. `v2xvit/hypes_yaml/point_pillar_v2xvit.yaml`, meaning you want to train
+- `model_dir` (optional) : the path of the checkpoints. This is used to fine-tune the trained models. When the `model_dir` is
+given, the trainer will discard the `hypes_yaml` and load the `config.yaml` in the checkpoint folder.
+- `half`(optional): if specified, hybrid-precision training will be used to save memory occupation.
+
+<strong>Important Notes for Training:</strong>
+1. When you train from scratch, please first set `async` and `loc_err` to false to train on perfect setting. Also, set `compression` to 0 at beginning.
+2. After the model on perfect setting converged, set `compression`  to 32 (please change the config yaml in your trained model directory) and continue training on the perfect setting for another 1-2 epoches.
+3. Next, set `async` to true, `async_mode` to 'real', `async_overhead` to 200 or 300, `loc_err` to true, `xyz_std` to 0.2, `rpy_std` to 0.2, and then continue training your model on this noisy setting. Please note that you are free to change these noise setting during training to obtain better performance.
+4. Eventually, use the model fine-tuned on noisy setting as the test model for both perfect and noisy setting.

@@ -53,8 +53,8 @@ Now let's go through the `point_pillar_opv2v_fusion.yaml` as an example.
 
 ```yaml
 name: point_pillar_intermediate_fusion # this parameter together with the current timestamp will  define the name of the saved folder for the model. 
-root_dir: "opv2v_data_dumping/train" # this is where the training data locate
-validate_dir: "opv2v_data_dumping/validate" # during training, it defines the validation folder. during testing, it defines the testing folder path.
+root_dir: "v2xset/train" # this is where the training data locate
+validate_dir: "v2xset/validate" # during training, it defines the validation folder. during testing, it defines the testing folder path.
 
 yaml_parser: "load_point_pillar_params" # we need specific loading functions for different backbones.
 train_params: # the common training parameters

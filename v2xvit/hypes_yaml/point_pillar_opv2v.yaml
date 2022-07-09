@@ -1,7 +1,7 @@
 name: point_pillar_opv2v
 #root_dir: '/home/runshengxu/project/Cooperative_perception/opencood/tmp'
-root_dir: '/home/runshengxu/project/OpenCDA/opv2x_data_dumping/train'
-validate_dir: '/home/runshengxu/project/OpenCDA/opv2x_data_dumping/test'
+root_dir: 'v2xset/train'
+validate_dir: 'v2xset/validate'
 
 wild_setting:
   async: false

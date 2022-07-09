@@ -1,6 +1,6 @@
 name: point_pillar_v2xvit
-root_dir: 'opv2x_data_dumping/train'
-validate_dir: 'opv2x_data_dumping/validate'
+root_dir: 'v2xset/train'
+validate_dir: 'v2xset/validate'
 
 wild_setting:
   async: false
