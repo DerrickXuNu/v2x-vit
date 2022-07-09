@@ -66,6 +66,39 @@ python v2xvit/visualization/vis_data_sequence.py [--color_mode ${COLOR_RENDERING
 Arguments Explanation:
 - `color_mode` : str type, indicating the lidar color rendering mode. You can choose from 'constant', 'intensity' or 'z-value'.
 
+### Test with pretrained model
+To test the pretrained model of V2X-ViT, first download the model file from [google url](https://drive.google.com/drive/folders/1h2UOPP2tNRkV_s6cbKcSfMvTgb8_ZFj9?usp=sharing) and
+then put it under v2x-vit/logs/v2x-vit. Change the `validate_path` in `v2x-vit/logs/v2x-vit/config.yaml` as `'v2xset/test'.
+
+To test under perfect setting, change both `async`  and `loc_error`to false in the v2x-vit/logs/v2x-vit/config.yaml.
+
+To test under noisy setting in our paper, change the `wild_setting` as followings:
+```
+wild_setting:
+  async: true
+  async_mode: 'sim'
+  async_overhead: 100
+  backbone_delay: 10
+  data_size: 1.06
+  loc_err: true
+  ryp_std: 0.2
+  seed: 25
+  transmission_speed: 27
+  xyz_std: 0.2
+```
+Eventually, run the following command to perform test:
+```python
+python opencood/tools/inference.py --model_dir ${CHECKPOINT_FOLDER} --fusion_method ${FUSION_STRATEGY} [--show_vis] [--show_sequence]
+```
+Arguments Explanation:
+- `model_dir`: the path to your saved model.
+- `fusion_method`: indicate the fusion strategy, currently support 'early', 'late', and 'intermediate'.
+- `show_vis`: whether to visualize the detection overlay with point cloud.
+- `show_sequence` : the detection results will visualized in a video stream. It can NOT be set with `show_vis` at the same time.
+
+
+
+
 ### Train your model
 V2X-ViT uses yaml file to configure all the parameters for training. To train your own model
 from scratch or a continued checkpoint, run the following commonds:
@@ -83,3 +116,18 @@ given, the trainer will discard the `hypes_yaml` and load the `config.yaml` in t
 2. After the model on perfect setting converged, set `compression`  to 32 (please change the config yaml in your trained model directory) and continue training on the perfect setting for another 1-2 epoches.
 3. Next, set `async` to true, `async_mode` to 'real', `async_overhead` to 200 or 300, `loc_err` to true, `xyz_std` to 0.2, `rpy_std` to 0.2, and then continue training your model on this noisy setting. Please note that you are free to change these noise setting during training to obtain better performance.
 4. Eventually, use the model fine-tuned on noisy setting as the test model for both perfect and noisy setting.
+
+## Citation
+ If you are using our V2X-ViT model or V2XSet dataset for your research, please cite the following paper:
+ ```bibtex
+@inproceedings{xu2022v2xvit,
+  author = {Runsheng Xu, Hao Xiang, Zhengzhong Tu, Xin Xia, Ming-Hsuan Yang, Jiaqi Ma},
+  title = {V2X-ViT: Vehicle-to-Everything Cooperative Perception with Vision Transformer},
+  booktitle={Proceedings of the European Conference on Computer Vision (ECCV)},
+  year = {2022}}
+```
+
+## Acknowledgement
+V2X-ViT is build upon [OpenCOOD](https://github.com/DerrickXuNu/OpenCOOD), which is the first Open Cooperative Detection framework for autonomous driving.
+
+V2XSet is collected using [OpenCDA](https://github.com/ucla-mobility/OpenCDA), which is the first open co-simulation-based research/engineering framework integrated with prototype cooperative driving automation pipelines as well as regular automated driving components (e.g., perception, localization, planning, control).
