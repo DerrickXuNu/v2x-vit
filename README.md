@@ -1,6 +1,11 @@
 # V2X-ViT
 This is the official implementation of ECCV2022 paper "V2X-ViT: Vehicle-to-Everything Cooperative Perception with Vision Transformer".
 
+<p align="center">
+<img src="images/v2xvit.png" width="600" alt="" class="img-responsive">
+</p>
+
+
 ## Installation
 ```bash
 # Clone repo
