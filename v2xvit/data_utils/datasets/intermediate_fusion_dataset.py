@@ -23,6 +23,7 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
     def __init__(self, params, visualize, train=True):
         super(IntermediateFusionDataset, self). \
             __init__(params, visualize, train)
+        self.cur_ego_pose_flag = params['fusion']['args']['cur_ego_pose_flag']
         self.pre_processor = build_preprocessor(params['preprocess'],
                                                 train)
         self.post_processor = post_processor.build_postprocessor(
@@ -30,7 +31,13 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
             train)
 
     def __getitem__(self, idx):
-        base_data_dict = self.retrieve_base_data(idx, cur_ego_pose_flag=False)
+        # when the cur_ego_pose_flag is set to True, there is no time gap
+        # between  the time when the LiDAR data is captured by connected
+        # agents and when the extracted features are received by
+        # the ego vehicle. This is equal to implement STCM.
+        base_data_dict = \
+            self.retrieve_base_data(idx,
+                                    cur_ego_pose_flag=self.cur_ego_pose_flag)
 
         processed_data_dict = OrderedDict()
         processed_data_dict['ego'] = {}

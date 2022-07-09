@@ -77,7 +77,13 @@ wild_setting: # setting related to noise
 
 fusion:
   core_method: 'IntermediateFusionDataset' # LateFusionDataset, EarlyFusionDataset, and IntermediateFusionDataset are supported
-  args: []
+  args:
+    cur_ego_pose_flag: True
+    # when the cur_ego_pose_flag is set to True, there is no time gap
+    # between  the time when the LiDAR data is captured by connected
+    # agents and when the extracted features are received by
+    # the ego vehicle, which is equal to implement STCM. When set to False,
+    # STCM has to be used. To validate STCM, V2X-ViT will set this as False.
 
 # preprocess-related
 preprocess:

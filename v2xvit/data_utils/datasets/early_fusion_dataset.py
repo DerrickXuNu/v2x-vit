@@ -26,7 +26,7 @@ class EarlyFusionDataset(basedataset.BaseDataset):
         self.post_processor = build_postprocessor(params['postprocess'], train)
 
     def __getitem__(self, idx):
-        base_data_dict = self.retrieve_base_data(idx)
+        base_data_dict = self.retrieve_base_data(idx, cur_ego_pose_flag=True)
 
         processed_data_dict = OrderedDict()
         processed_data_dict['ego'] = {}

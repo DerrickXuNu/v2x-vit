@@ -1,7 +1,7 @@
 name: point_pillar_opv2v
 #root_dir: '/home/runshengxu/project/Cooperative_perception/opencood/tmp'
-root_dir: '/home/ucla_cav/data/train'
-validate_dir: '/home/ucla_cav/data/validate'
+root_dir: '/home/runshengxu/project/OpenCDA/opv2x_data_dumping/train'
+validate_dir: '/home/runshengxu/project/OpenCDA/opv2x_data_dumping/test'
 
 wild_setting:
   async: false
@@ -24,7 +24,14 @@ train_params:
 
 fusion:
   core_method: 'IntermediateFusionDataset' # LateFusionDataset, EarlyFusionDataset, IntermediateFusionDataset supported
-  args: []
+  args:
+    cur_ego_pose_flag: True
+      # when the cur_ego_pose_flag is set to True, there is no time gap
+      # between  the time when the LiDAR data is captured by connected
+      # agents and when the extracted features are received by
+      # the ego vehicle, which is equal to implement STCM. When set to False,
+      # STCM has to be used.
+
 
 # preprocess-related
 preprocess:

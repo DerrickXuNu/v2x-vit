@@ -227,13 +227,11 @@ class BaseDataset(Dataset):
 
             if timestamp_index - timestamp_delay <= 0:
                 timestamp_delay = timestamp_index
-
             timestamp_index_delay = max(0, timestamp_index - timestamp_delay)
             timestamp_key_delay = self.return_timestamp_key(scenario_database,
                                                             timestamp_index_delay)
             # add time delay to vehicle parameters
             data[cav_id]['time_delay'] = timestamp_delay
-
             # load the corresponding data into the dictionary
             data[cav_id]['params'] = self.reform_param(cav_content,
                                                        ego_cav_content,

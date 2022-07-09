@@ -131,7 +131,7 @@ def create_loss(hypes):
     loss_func_name = hypes['loss']['core_method']
     loss_func_config = hypes['loss']['args']
 
-    loss_filename = "opencood.loss." + loss_func_name
+    loss_filename = "v2xvit.loss." + loss_func_name
     loss_lib = importlib.import_module(loss_filename)
     loss_func = None
     target_loss_name = loss_func_name.replace('_', '')
