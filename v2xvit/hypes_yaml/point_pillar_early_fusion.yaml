@@ -1,6 +1,6 @@
 name: point_pillar_early_fusion
-root_dir: '/home/runshengxu/project/OpenCDA/opv2x_data_dumping/train'
-validate_dir: '/home/runshengxu/project/OpenCDA/opv2x_data_dumping/test'
+root_dir: 'v2xset/train'
+validate_dir: 'v2xset/validate'
 yaml_parser: "load_point_pillar_params"
 
 wild_setting:

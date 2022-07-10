@@ -1,4 +1,4 @@
-name: point_pillar_v2vney
+name: point_pillar_v2vnet
 root_dir: 'v2xset/train'
 validate_dir: 'v2xset/validate'
 

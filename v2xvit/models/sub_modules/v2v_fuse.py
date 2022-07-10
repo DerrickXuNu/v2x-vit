@@ -11,7 +11,6 @@ from v2xvit.models.sub_modules.torch_transformation_utils import \
 from v2xvit.models.sub_modules.convgru import ConvGRU
 
 
-
 class V2VNetFusion(nn.Module):
     def __init__(self, args):
         super(V2VNetFusion, self).__init__()
@@ -90,9 +89,14 @@ class V2VNetFusion(nn.Module):
                 for i in range(N):
                     # (N,1,H,W)
                     mask = roi_mask[b, :N, i, ...]
+
+                    current_t_matrix = t_matrix[:, i, :, :]
+                    current_t_matrix = get_transformation_matrix(
+                        current_t_matrix, (H, W))
+
                     # (N,C,H,W)
                     neighbor_feature = warp_affine(batch_node_features[b],
-                                                   t_matrix[:, i, :, :],
+                                                   current_t_matrix,
                                                    (H, W))
                     # (N,C,H,W)
                     ego_agent_feature = batch_node_features[b][i].unsqueeze(
