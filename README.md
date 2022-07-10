@@ -41,7 +41,7 @@ unzip train.zip
 After downloading is finished, please make the file structured as following:
 
 ```sh
-v2x-vit # root of your OpenCOOD
+v2x-vit # root of your v2xvit
 ├── v2xset # the downloaded v2xset data
 │   ├── train
 │   ├── validate
@@ -90,7 +90,7 @@ wild_setting:
 ```
 Eventually, run the following command to perform test:
 ```python
-python opencood/tools/inference.py --model_dir ${CHECKPOINT_FOLDER} --fusion_method ${FUSION_STRATEGY} [--show_vis] [--show_sequence]
+python v2xvit/tools/inference.py --model_dir ${CHECKPOINT_FOLDER} --fusion_method ${FUSION_STRATEGY} [--show_vis] [--show_sequence]
 ```
 Arguments Explanation:
 - `model_dir`: the path to your saved model.

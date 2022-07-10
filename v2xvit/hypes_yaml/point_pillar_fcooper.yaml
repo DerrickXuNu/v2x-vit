@@ -1,5 +1,4 @@
 name: point_pillar_fcooper
-#root_dir: '/home/runshengxu/project/Cooperative_perception/opencood/tmp'
 root_dir: 'v2xset/train'
 validate_dir: 'v2xset/validate'
 wild_setting:
