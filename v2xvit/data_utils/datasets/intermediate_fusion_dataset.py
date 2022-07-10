@@ -6,14 +6,12 @@ from collections import OrderedDict
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 
 import v2xvit
 import v2xvit.data_utils.post_processor as post_processor
 from v2xvit.utils import box_utils
 from v2xvit.data_utils.datasets import basedataset
 from v2xvit.data_utils.pre_processor import build_preprocessor
-from v2xvit.hypes_yaml.yaml_utils import load_yaml
 from v2xvit.utils.pcd_utils import \
     mask_points_by_range, mask_ego_points, shuffle_points, \
     downsample_lidar_minimum
@@ -55,6 +53,11 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
             0], "The first element in the OrderedDict must be ego"
         assert ego_id != -1
         assert len(ego_lidar_pose) > 0
+        # this is used for v2vnet and disconet
+        pairwise_t_matrix = \
+            self.get_pairwise_transformation(base_data_dict,
+                                             self.params['train_params'][
+                                                 'max_cav'])
 
         processed_features = []
         object_stack = []
@@ -151,13 +154,42 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
              'velocity': velocity,
              'time_delay': time_delay,
              'infra': infra,
-             'spatial_correction_matrix': spatial_correction_matrix})
+             'spatial_correction_matrix': spatial_correction_matrix,
+             'pairwise_t_matrix': pairwise_t_matrix})
 
         if self.visualize:
             processed_data_dict['ego'].update({'origin_lidar':
                 np.vstack(
                     projected_lidar_stack)})
         return processed_data_dict
+
+    @staticmethod
+    def get_pairwise_transformation(base_data_dict, max_cav):
+        """
+        Get pair-wise transformation matrix across different agents.
+        This is only used for v2vnet and disconet. Currently we set
+        this as identity matrix as the pointcloud is projected to
+        ego vehicle first.
+
+        Parameters
+        ----------
+        base_data_dict : dict
+            Key : cav id, item: transformation matrix to ego, lidar points.
+
+        max_cav : int
+            The maximum number of cav, default 5
+
+        Return
+        ------
+        pairwise_t_matrix : np.array
+            The pairwise transformation matrix across each cav.
+            shape: (L, L, 4, 4)
+        """
+        pairwise_t_matrix = np.zeros((max_cav, max_cav, 4, 4))
+        # default are identity matrix
+        pairwise_t_matrix[:, :] = np.identity(4)
+
+        return pairwise_t_matrix
 
     def get_item_single_car(self, selected_cav_base, ego_pose):
         """
@@ -265,6 +297,9 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         time_delay = []
         infra = []
 
+        # pairwise transformation matrix
+        pairwise_t_matrix_list = []
+
         # used for correcting the spatial transformation between delayed timestamp
         # and current timestamp
         spatial_correction_matrix_list = []
@@ -287,6 +322,7 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
             infra.append(ego_dict['infra'])
             spatial_correction_matrix_list.append(
                 ego_dict['spatial_correction_matrix'])
+            pairwise_t_matrix_list.append(ego_dict['pairwise_t_matrix'])
 
             if self.visualize:
                 origin_lidar.append(ego_dict['origin_lidar'])
@@ -313,6 +349,8 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         # (B, max_cav, 3)
         prior_encoding = \
             torch.stack([velocity, time_delay, infra], dim=-1).float()
+        # (B, max_cav)
+        pairwise_t_matrix = torch.from_numpy(np.array(pairwise_t_matrix_list))
 
         # object id is only used during inference, where batch size is 1.
         # so here we only get the first element.
@@ -323,7 +361,8 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
                                    'label_dict': label_torch_dict,
                                    'object_ids': object_ids[0],
                                    'prior_encoding': prior_encoding,
-                                   'spatial_correction_matrix': spatial_correction_matrix_list})
+                                   'spatial_correction_matrix': spatial_correction_matrix_list,
+                                   'pairwise_t_matrix': pairwise_t_matrix})
 
         if self.visualize:
             origin_lidar = \

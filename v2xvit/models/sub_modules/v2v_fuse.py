@@ -5,10 +5,10 @@ Implementation of V2VNet Fusion
 import torch
 import torch.nn as nn
 
-from opencood.models.sub_modules.torch_transformation_utils import \
+from v2xvit.models.sub_modules.torch_transformation_utils import \
     get_discretized_transformation_matrix, get_transformation_matrix, \
     warp_affine, get_rotated_roi
-from opencood.models.sub_modules.convgru import ConvGRU
+from v2xvit.models.sub_modules.convgru import ConvGRU
 
 
 

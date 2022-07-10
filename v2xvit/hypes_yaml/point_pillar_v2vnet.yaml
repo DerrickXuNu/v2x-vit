@@ -1,14 +1,12 @@
 name: point_pillar_v2vney
-#root_dir: '/home/runshengxu/project/Cooperative_perception/opencood/tmp'
-#root_dir: '/home/ucla_cav/data/train'
-#validate_dir: '/home/ucla_cav/data/validate'
-root_dir: '/home/hao/code/mobility/data/train'
-validate_dir: '/home/hao/code/mobility/data/validate'
+root_dir: 'v2xset/train'
+validate_dir: 'v2xset/validate'
+
 wild_setting:
-  async: true
+  async: false
   async_overhead: 100
   seed: 20
-  loc_err: true
+  loc_err: false
   xyz_std: 0.2
   ryp_std: 0.2
   data_size: 1.06 # Mb!!
@@ -24,8 +22,9 @@ train_params:
   max_cav: &max_cav 5
 
 fusion:
-  core_method: 'FeatureFusionDataset' # LateFusionDataset, EarlyFusionDataset, IntermediateFusionDataset, FeatureFusionDataset supported
-  args: []
+  core_method: 'IntermediateFusionDataset' # LateFusionDataset, EarlyFusionDataset, IntermediateFusionDataset supported
+  args:
+    cur_ego_pose_flag: True
 
 # preprocess-related
 preprocess:
