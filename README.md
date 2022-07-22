@@ -1,6 +1,6 @@
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/v2x-vit-vehicle-to-everything-cooperative/3d-object-detection-on-v2xset)](https://paperswithcode.com/sota/3d-object-detection-on-v2xset?p=v2x-vit-vehicle-to-everything-cooperative)
 
-# [V2X-ViT](https://arxiv.org/abs/2203.10638) (ECCV 2022)
+# [V2X-ViT](https://arxiv.org/abs/2203.10638): Vehicle-to-Everything Cooperative Perception with Vision Transformer (ECCV 2022)
 
 [![paper](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2203.10638)
 [![supplement](https://img.shields.io/badge/Supplementary-Material-red)]()
