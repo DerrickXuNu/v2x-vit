@@ -1,6 +1,11 @@
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/v2x-vit-vehicle-to-everything-cooperative/3d-object-detection-on-v2xset)](https://paperswithcode.com/sota/3d-object-detection-on-v2xset?p=v2x-vit-vehicle-to-everything-cooperative)
+
 # [V2X-ViT](https://arxiv.org/abs/2203.10638) (ECCV 2022)
 
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/v2x-vit-vehicle-to-everything-cooperative/3d-object-detection-on-v2xset)](https://paperswithcode.com/sota/3d-object-detection-on-v2xset?p=v2x-vit-vehicle-to-everything-cooperative)
+[![paper](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2203.10638)
+[![supplement](https://img.shields.io/badge/Supplementary-Material-red)]()
+[![video](https://img.shields.io/badge/Video-Presentation-F9D371)]()
+
 
 This is the official implementation of ECCV2022 paper "V2X-ViT: Vehicle-to-Everything Cooperative Perception with Vision Transformer".
 [Runsheng Xu](https://derrickxunu.github.io/), [Hao Xiang](https://xhwind.github.io/), [Zhengzhong Tu](https://github.com/vztu), [Xin Xia](https://scholar.google.com/citations?user=vCYqMTIAAAAJ&hl=en), [Ming-Hsuan Yang](https://scholar.google.com/citations?user=p9-ohHsAAAAJ&hl=en), [Jiaqi Ma](https://mobility-lab.seas.ucla.edu/)
