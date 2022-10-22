@@ -170,7 +170,7 @@ class BaseDataset(Dataset):
                     self.scenario_database[i][cav_id]['ego'] = False
 
     def __len__(self):
-        return self.len_record[-1]
+        return self.len_record[-1]  # len_record[i] - len_record[i-1] is timestamps in scenario i
 
     def __getitem__(self, idx):
         """
@@ -225,7 +225,7 @@ class BaseDataset(Dataset):
             timestamp_delay = \
                 self.time_delay_calculation(cav_content['ego'])
 
-            if timestamp_index - timestamp_delay <= 0:
+            if timestamp_index - timestamp_delay <= 0:  # redundant ?
                 timestamp_delay = timestamp_index
             timestamp_index_delay = max(0, timestamp_index - timestamp_delay)
             timestamp_key_delay = self.return_timestamp_key(scenario_database,

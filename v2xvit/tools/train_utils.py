@@ -9,7 +9,7 @@ import torch
 import torch.optim as optim
 
 
-def load_saved_model(saved_path, model):
+def load_saved_model(saved_path, model, device = None):
     """
     Load saved model if exiseted
 
@@ -44,7 +44,7 @@ def load_saved_model(saved_path, model):
         print('resuming by loading epoch %d' % initial_epoch)
         model.load_state_dict(torch.load(
             os.path.join(saved_path,
-                         'net_epoch%d.pth' % initial_epoch)), strict=False)
+                         'net_epoch%d.pth' % initial_epoch), map_location=device), strict=False)
 
     return initial_epoch, model
 

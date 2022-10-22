@@ -63,7 +63,7 @@ def main():
 
     print('Loading Model from checkpoint')
     saved_path = opt.model_dir
-    _, model = train_utils.load_saved_model(saved_path, model)
+    _, model = train_utils.load_saved_model(saved_path, model, device=device)
     model.eval()
 
     # Create the dictionary for evaluation
@@ -91,7 +91,8 @@ def main():
     for i, batch_data in enumerate(data_loader):
         print(i)
         with torch.no_grad():
-            torch.cuda.synchronize()
+            if device == 'cuda':
+                torch.cuda.synchronize()
             batch_data = train_utils.to_device(batch_data, device)
             if opt.fusion_method == 'late':
                 pred_box_tensor, pred_score, gt_box_tensor = \

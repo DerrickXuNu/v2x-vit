@@ -21,7 +21,7 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
     def __init__(self, params, visualize, train=True):
         super(IntermediateFusionDataset, self). \
             __init__(params, visualize, train)
-        self.cur_ego_pose_flag = params['fusion']['args']['cur_ego_pose_flag']
+        self.cur_ego_pose_flag = params['fusion']['args']['cur_ego_pose_flag']  # ego car can get features immediately (when other agent get lidar)
         self.pre_processor = build_preprocessor(params['preprocess'],
                                                 train)
         self.post_processor = post_processor.build_postprocessor(
@@ -144,12 +144,12 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         spatial_correction_matrix = np.concatenate([spatial_correction_matrix, padding_eye], axis=0)
 
         processed_data_dict['ego'].update(
-            {'object_bbx_center': object_bbx_center,
-             'object_bbx_mask': mask,
-             'object_ids': [object_id_stack[i] for i in unique_indices],
-             'anchor_box': anchor_box,
-             'processed_lidar': merged_feature_dict,
-             'label_dict': label_dict,
+            {'object_bbx_center': object_bbx_center,        # [max_num, 7] box center: x, y, z, l, w, h, yaw
+             'object_bbx_mask': mask,                       # [max_num] mask for valid boxes, if 1, valid
+             'object_ids': [object_id_stack[i] for i in unique_indices],    # unique object ids, no idea if in order
+             'anchor_box': anchor_box,                      # [H // 4, W // 4, anchor_num(2), 7] anchor box center: x, y, z, l, w, h, yaw
+             'processed_lidar': merged_feature_dict,        # voxel_features:list( [no idea, 32, 4]*4), coors:list( [no idea, 3]*4 ), num_points_per_voxel: list( [no idea]*4 )
+             'label_dict': label_dict,                      # dict( 'pos_equal_one': [H // 4, W // 4, anchor_num(2)], 'neg_equal_one': [H // 4, W // 4, anchor_num(2)], targets: [H // 4, W // 4, 14] (bias between pos_equal_one and gt) )
              'cav_num': cav_num,
              'velocity': velocity,
              'time_delay': time_delay,

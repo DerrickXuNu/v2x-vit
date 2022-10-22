@@ -18,6 +18,8 @@ class SpVoxelPreprocessor(BasePreprocessor):
                                                   train)
 
         self.lidar_range = self.params['cav_lidar_range']
+        # i guess [x_begin, y_begin, z_begin, x_end, y_end, z_end]
+        # ego is zero point, and front is positive direction of x, left is y positive, top is z, unit is meter
         self.voxel_size = self.params['args']['voxel_size']
         self.max_points_per_voxel = self.params['args']['max_points_per_voxel']
 
@@ -51,7 +53,7 @@ class SpVoxelPreprocessor(BasePreprocessor):
             voxels, coordinates, num_points = voxel_output
 
         data_dict['voxel_features'] = voxels.numpy()
-        data_dict['voxel_coords'] = coordinates.numpy()
+        data_dict['voxel_coords'] = coordinates.numpy() # [batch, z, y, x]
         data_dict['voxel_num_points'] = num_points.numpy()
 
         return data_dict

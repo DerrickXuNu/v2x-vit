@@ -164,7 +164,7 @@ class V2XTEncoder(nn.Module):
         if self.use_RTE:
             # dt: (B,L)
             dt = prior_encoding[:, :, 0, 0, 1].to(torch.int)
-            x = self.rte(x, dt)
+            x = self.rte(x, dt)     # Delay-aware positional encoding
         x = self.sttf(x, mask, spatial_correction_matrix)
         com_mask = mask.unsqueeze(1).unsqueeze(2).unsqueeze(
             3) if not self.use_roi_mask else get_roi_and_cav_mask(x.shape,

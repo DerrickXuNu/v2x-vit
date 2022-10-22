@@ -2,6 +2,7 @@ import argparse
 import os
 import statistics
 
+import easydict
 import torch
 import tqdm
 from torch.utils.data import DataLoader
@@ -11,6 +12,7 @@ import v2xvit.hypes_yaml.yaml_utils as yaml_utils
 from v2xvit.tools import train_utils
 from v2xvit.data_utils.datasets import build_dataset
 
+DEBUG = True
 
 def train_parser():
     parser = argparse.ArgumentParser(description="synthetic data generation")
@@ -24,10 +26,23 @@ def train_parser():
 
 
 def main():
-    opt = train_parser()
+    print(os.path.abspath('.'))
+    if DEBUG:
+        opt = easydict.EasyDict({'hypes_yaml': '../../v2xvit/hypes_yaml/point_pillar_v2xvit.yaml', 'model_dir': '/home/JJ_Group/cheny/v2x-vit/v2xvit/logs/point_pillar_v2xvit_2022_10_12_01_12_00', 'half': False})
+    else:
+        opt = train_parser()
     hypes = yaml_utils.load_yaml(opt.hypes_yaml, opt)
 
     print('Dataset Building')
+    # dataset:
+    #   scenario_database:
+    #       - ordered_dict: every scenario
+    #           - ordered_dict: every car (id > 0) or infrastructure (id < 0)
+    #               - ordered_dict: every frame (timestamp)
+    #                   - yaml: every attribute
+    #                   - lidar: (N, 4) numpy array
+    #                   - camera:
+
     opencood_train_dataset = build_dataset(hypes, visualize=False, train=True)
     opencood_validate_dataset = build_dataset(hypes,
                                               visualize=False,
@@ -68,12 +83,14 @@ def main():
     if opt.model_dir:
         saved_path = opt.model_dir
         init_epoch, model = train_utils.load_saved_model(saved_path, model)
+        print('Loaded model from {}, init_epoch = {}'.format(saved_path, init_epoch))
 
     else:
         init_epoch = 0
         # if we train the model from scratch, we need to create a folder
         # to save the model,
         saved_path = train_utils.setup_train(hypes)
+        print('Created model folder at {}, initEpoch = 0'.format(saved_path))
 
     # record training
     writer = SummaryWriter(saved_path)

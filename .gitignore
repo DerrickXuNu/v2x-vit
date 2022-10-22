@@ -133,3 +133,9 @@ logs/
 .idea
 opv2x
 .DS_Store
+/npy/
+/vis_save/
+/0000_gt.npy
+/0000_pcd.npy
+/0000_pred.npy
+/123.py

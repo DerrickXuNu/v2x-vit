@@ -1,6 +1,6 @@
 name: point_pillar_v2xvit
-root_dir: 'v2xset/train'
-validate_dir: 'v2xset/validate'
+root_dir: '/home/JJ_Group/datasets/V2X/v2xset/train'
+validate_dir: '/home/JJ_Group/datasets/V2X/v2xset/validate'
 
 wild_setting:
   async: false

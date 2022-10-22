@@ -3,7 +3,7 @@ name: visualization
 
 yaml_parser: "load_voxel_params"
 root_dir: 'v2xset/train'
-validate_dir: 'v2xset/validate'
+validate_dir: '/home/JJ_Group/datasets/V2X/v2xset/validate'
 
 train_params:
   batch_size: &batch_size 4

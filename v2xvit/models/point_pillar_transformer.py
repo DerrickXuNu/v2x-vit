@@ -75,7 +75,7 @@ class PointPillarTransformer(nn.Module):
         record_len = data_dict['record_len']
         spatial_correction_matrix = data_dict['spatial_correction_matrix']
 
-        # B, max_cav, 3(dt dv infra), 1, 1
+        # B, max_cav, 3(dt dv infra), 1, 1 # B, max_cav, 3(v delay infra), 1, 1
         prior_encoding =\
             data_dict['prior_encoding'].unsqueeze(-1).unsqueeze(-1)
 
@@ -111,7 +111,7 @@ class PointPillarTransformer(nn.Module):
         # transformer fusion
         fused_feature = self.fusion_net(regroup_feature, mask, spatial_correction_matrix)
         # b h w c -> b c h w
-        fused_feature = fused_feature.permute(0, 3, 1, 2)
+        fused_feature = fused_feature.permute(0, 3, 1, 2).contiguous()
 
         psm = self.cls_head(fused_feature)
         rm = self.reg_head(fused_feature)
