@@ -21,7 +21,13 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
     def __init__(self, params, visualize, train=True):
         super(IntermediateFusionDataset, self). \
             __init__(params, visualize, train)
-        self.cur_ego_pose_flag = params['fusion']['args']['cur_ego_pose_flag']  # ego car can get features immediately (when other agent get lidar)
+        self.cur_ego_pose_flag = params['fusion']['args'][
+            'cur_ego_pose_flag']  # ego car can get features immediately (when other agent get lidar)
+        try:
+            self.build_motion_data = params['fusion']['args']['build_motion_data']
+        except KeyError:
+            self.build_motion_data = False
+        self.his_len = self.params['fusion']['args']['his_len'] if self.build_motion_data else None
         self.pre_processor = build_preprocessor(params['preprocess'],
                                                 train)
         self.post_processor = post_processor.build_postprocessor(
@@ -35,7 +41,8 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         # the ego vehicle. This is equal to implement STCM.
         base_data_dict = \
             self.retrieve_base_data(idx,
-                                    cur_ego_pose_flag=self.cur_ego_pose_flag)
+                                    cur_ego_pose_flag=self.cur_ego_pose_flag,
+                                    his_len=self.his_len)
 
         processed_data_dict = OrderedDict()
         processed_data_dict['ego'] = {}
@@ -69,6 +76,7 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         time_delay = []
         infra = []
         spatial_correction_matrix = []
+        history = []
 
         if self.visualize:
             projected_lidar_stack = []
@@ -88,7 +96,21 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
             selected_cav_processed, void_lidar = self.get_item_single_car(
                 selected_cav_base,
                 ego_lidar_pose)
-
+            processed_history_frames = []
+            for time_st, history_cav_base in selected_cav_base['history_frames'].items():
+                transformation_matrix = history_cav_base['transformation_matrix']
+                lidar_np = history_cav_base['lidar_np']
+                lidar_np = shuffle_points(lidar_np)
+                lidar_np = mask_ego_points(lidar_np)
+                lidar_np[:, :3] = \
+                    box_utils.project_points_by_matrix_torch(lidar_np[:, :3],
+                                                             transformation_matrix)
+                lidar_np = mask_points_by_range(lidar_np,
+                                                self.params['preprocess'][
+                                                    'cav_lidar_range'])
+                processed_lidar = self.pre_processor.preprocess(lidar_np)
+                processed_history_frames.append(processed_lidar)
+            history.append(self.merge_features_to_dict(processed_history_frames))
             if void_lidar:
                 continue
 
@@ -123,6 +145,7 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         # merge preprocessed features from different cavs into the same dict
         cav_num = len(processed_features)
         merged_feature_dict = self.merge_features_to_dict(processed_features)
+        history = self.merge_features_to_dict(history)
 
         # generate the anchor boxes
         anchor_box = self.post_processor.generate_anchor_box()
@@ -136,26 +159,31 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
 
         # pad dv, dt, infra to max_cav
         velocity = velocity + (self.max_cav - len(velocity)) * [0.]
+        original_time_delay = time_delay.copy()
         time_delay = time_delay + (self.max_cav - len(time_delay)) * [0.]
         infra = infra + (self.max_cav - len(infra)) * [0.]
         spatial_correction_matrix = np.stack(spatial_correction_matrix)
-        padding_eye = np.tile(np.eye(4)[None],(self.max_cav - len(
-                                               spatial_correction_matrix),1,1))
+        padding_eye = np.tile(np.eye(4)[None], (self.max_cav - len(
+            spatial_correction_matrix), 1, 1))
         spatial_correction_matrix = np.concatenate([spatial_correction_matrix, padding_eye], axis=0)
 
         processed_data_dict['ego'].update(
-            {'object_bbx_center': object_bbx_center,        # [max_num, 7] box center: x, y, z, l, w, h, yaw
-             'object_bbx_mask': mask,                       # [max_num] mask for valid boxes, if 1, valid
-             'object_ids': [object_id_stack[i] for i in unique_indices],    # unique object ids, no idea if in order
-             'anchor_box': anchor_box,                      # [H // 4, W // 4, anchor_num(2), 7] anchor box center: x, y, z, l, w, h, yaw
-             'processed_lidar': merged_feature_dict,        # voxel_features:list( [no idea, 32, 4]*4), coors:list( [no idea, 3]*4 ), num_points_per_voxel: list( [no idea]*4 )
-             'label_dict': label_dict,                      # dict( 'pos_equal_one': [H // 4, W // 4, anchor_num(2)], 'neg_equal_one': [H // 4, W // 4, anchor_num(2)], targets: [H // 4, W // 4, 14] (bias between pos_equal_one and gt) )
+            {'object_bbx_center': object_bbx_center,  # [max_num, 7] box center: x, y, z, l, w, h, yaw
+             'object_bbx_mask': mask,  # [max_num] mask for valid boxes, if 1, valid
+             'object_ids': [object_id_stack[i] for i in unique_indices],  # unique object ids, no idea if in order
+             'anchor_box': anchor_box,  # [H // 4, W // 4, anchor_num(2), 7] anchor box center: x, y, z, l, w, h, yaw
+             'processed_lidar': merged_feature_dict,
+             # voxel_features:list( [no idea, 32, 4]*4), coors:list( [no idea, 3]*4 ), num_points_per_voxel: list( [no idea]*4 )
+             'label_dict': label_dict,
+             # dict( 'pos_equal_one': [H // 4, W // 4, anchor_num(2)], 'neg_equal_one': [H // 4, W // 4, anchor_num(2)], targets: [H // 4, W // 4, 14] (bias between pos_equal_one and gt) )
              'cav_num': cav_num,
              'velocity': velocity,
              'time_delay': time_delay,
              'infra': infra,
              'spatial_correction_matrix': spatial_correction_matrix,
-             'pairwise_t_matrix': pairwise_t_matrix})
+             'pairwise_t_matrix': pairwise_t_matrix,
+             'history': history,
+             'original_time_delay': original_time_delay})
 
         if self.visualize:
             processed_data_dict['ego'].update({'origin_lidar':
@@ -296,6 +324,7 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         velocity = []
         time_delay = []
         infra = []
+        original_time_delay = []
 
         # pairwise transformation matrix
         pairwise_t_matrix_list = []
@@ -303,6 +332,8 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         # used for correcting the spatial transformation between delayed timestamp
         # and current timestamp
         spatial_correction_matrix_list = []
+
+        history = []
 
         if self.visualize:
             origin_lidar = []
@@ -319,10 +350,13 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
 
             velocity.append(ego_dict['velocity'])
             time_delay.append(ego_dict['time_delay'])
+            # original_time_delay.append(ego_dict['original_time_delay'])
+            original_time_delay.extend(ego_dict['original_time_delay'])
             infra.append(ego_dict['infra'])
             spatial_correction_matrix_list.append(
                 ego_dict['spatial_correction_matrix'])
             pairwise_t_matrix_list.append(ego_dict['pairwise_t_matrix'])
+            history.append(ego_dict['history'])
 
             if self.visualize:
                 origin_lidar.append(ego_dict['origin_lidar'])
@@ -333,8 +367,11 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         # example: {'voxel_features':[np.array([1,2,3]]),
         # np.array([3,5,6]), ...]}
         merged_feature_dict = self.merge_features_to_dict(processed_lidar_list)
+        merged_history_dict = self.merge_features_to_dict(history)
         processed_lidar_torch_dict = \
             self.pre_processor.collate_batch(merged_feature_dict)
+        history_torch_dict = \
+            self.pre_processor.collate_batch(merged_history_dict)
         # [2, 3, 4, ..., M]
         record_len = torch.from_numpy(np.array(record_len, dtype=int))
         label_torch_dict = \
@@ -343,6 +380,7 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         # (B, max_cav)
         velocity = torch.from_numpy(np.array(velocity))
         time_delay = torch.from_numpy(np.array(time_delay))
+        original_time_delay = torch.from_numpy(np.array(original_time_delay))
         infra = torch.from_numpy(np.array(infra))
         spatial_correction_matrix_list = \
             torch.from_numpy(np.array(spatial_correction_matrix_list))
@@ -357,12 +395,14 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         output_dict['ego'].update({'object_bbx_center': object_bbx_center,
                                    'object_bbx_mask': object_bbx_mask,
                                    'processed_lidar': processed_lidar_torch_dict,
+                                   'history': history_torch_dict,
                                    'record_len': record_len,
                                    'label_dict': label_torch_dict,
                                    'object_ids': object_ids[0],
                                    'prior_encoding': prior_encoding,
                                    'spatial_correction_matrix': spatial_correction_matrix_list,
-                                   'pairwise_t_matrix': pairwise_t_matrix})
+                                   'pairwise_t_matrix': pairwise_t_matrix,
+                                   'original_time_delay': original_time_delay})
 
         if self.visualize:
             origin_lidar = \

@@ -16,7 +16,7 @@ from v2xvit.hypes_yaml.yaml_utils import load_yaml
 from v2xvit.utils.pcd_utils import downsample_lidar_minimum
 from v2xvit.utils.transformation_utils import x1_to_x2
 
-
+max_timedelay = []
 class BaseDataset(Dataset):
     """
     Base dataset for all kinds of fusion. Mainly used to assign correct
@@ -178,7 +178,7 @@ class BaseDataset(Dataset):
         """
         pass
 
-    def retrieve_base_data(self, idx, cur_ego_pose_flag=True):
+    def retrieve_base_data(self, idx, cur_ego_pose_flag=True, his_len=0):
         """
         Given the index, return the corresponding data.
 
@@ -225,11 +225,34 @@ class BaseDataset(Dataset):
             timestamp_delay = \
                 self.time_delay_calculation(cav_content['ego'])
 
+            global max_timedelay
+            max_timedelay.append(timestamp_delay)
+
             if timestamp_index - timestamp_delay <= 0:  # redundant ?
                 timestamp_delay = timestamp_index
             timestamp_index_delay = max(0, timestamp_index - timestamp_delay)
+            history_frames_key = []
+            for i in range(his_len):
+                index = max(0, timestamp_index_delay - i)
+                history_frames_key.append(self.return_timestamp_key(scenario_database, index))
+            history_frames_key.reverse()  # from old to new
             timestamp_key_delay = self.return_timestamp_key(scenario_database,
                                                             timestamp_index_delay)
+
+            data[cav_id]['history_frames'] = OrderedDict()
+            for i in range(his_len):
+                history_key = history_frames_key[i]
+                data[cav_id]['history_frames'][i] = OrderedDict()
+                data[cav_id]['history_frames'][i]['lidar_np'] = \
+                    pcd_utils.pcd_to_np(cav_content[history_key]['lidar'])
+                his_params = load_yaml(cav_content[history_key]['yaml'])
+                his_pose = his_params['lidar_pose']
+                if self.loc_err_flag:
+                    his_pose = self.add_loc_noise(his_pose, self.xyz_noise_std, self.ryp_noise_std)
+                ego_pose = load_yaml(ego_cav_content[timestamp_key_delay]['yaml'])['lidar_pose']
+                data[cav_id]['history_frames'][i]['transformation_matrix'] = \
+                    x1_to_x2(his_pose, ego_pose)
+
             # add time delay to vehicle parameters
             data[cav_id]['time_delay'] = timestamp_delay
             # load the corresponding data into the dictionary

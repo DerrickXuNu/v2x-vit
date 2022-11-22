@@ -133,6 +133,7 @@ class V2XTEncoder(nn.Module):
         mlp_dim = feed_config['mlp_dim']
         dropout = feed_config['dropout']
 
+        self.use_motion = args['use_motion']
         self.downsample_rate = args['sttf']['downsample_rate']
         self.discrete_ratio = args['sttf']['voxel_size'][0]
         self.use_roi_mask = args['use_roi_mask']

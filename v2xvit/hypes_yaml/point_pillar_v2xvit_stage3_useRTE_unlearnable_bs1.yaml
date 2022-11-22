@@ -2,14 +2,21 @@ name: point_pillar_v2xvit
 root_dir: '/home/JJ_Group/datasets/V2X/v2xset/train'
 validate_dir: '/home/JJ_Group/datasets/V2X/v2xset/validate'
 
-stage: 'stage2'
+stage: 'stage3'
+useRTE: &useRTE true
+use_motion: &use_motion true
+compression: &compression 0
+async: &async true
+loc_err: &loc_err true
+only_least_squares: &only_least_squares true
+learnable_backbone: &learnable_backbone false
 
 wild_setting:
-  async: false
+  async: *async
   async_mode: 'sim'
   async_overhead: 100
   seed: 25
-  loc_err: false
+  loc_err: *loc_err
   xyz_std: 0.2
   ryp_std: 0.2
   data_size: 1.06 # Mb!!
@@ -18,8 +25,8 @@ wild_setting:
 
 yaml_parser: "load_point_pillar_params"
 train_params:
-  batch_size: &batch_size 2
-  epoches: 60
+  batch_size: &batch_size 1
+  epoches: 72
   eval_freq: 1
   save_freq: 1
   max_cav: &max_cav 5
@@ -41,7 +48,7 @@ motion_method:
 motion_model:
   core_method: "second_order_motion"
   args:
-    only_least_squares: True
+    only_least_squares: *only_least_squares
     optical_flow:
       out_channels: 256
 
@@ -55,6 +62,8 @@ fusion:
   core_method: 'IntermediateFusionDataset' # LateFusionDataset, EarlyFusionDataset, IntermediateFusionDataset supported
   args:
     cur_ego_pose_flag: False
+    build_motion_data: True
+    his_len: *his_len
       # when the cur_ego_pose_flag is set to True, there is no time gap
       # between  the time when the LiDAR data is captured by connected
       # agents and when the extracted features are received by
@@ -106,14 +115,15 @@ postprocess:
 model:
   core_method: point_pillar_transformer
   args:
+    learnable_backbone: *learnable_backbone
     voxel_size: *voxel_size
     lidar_range: *cav_lidar
     anchor_number: *achor_num
     max_cav: *max_cav
-    compression: 0 # compression rate
+    compression: *compression # compression rate
     backbone_fix: false
     his_len: *his_len
-    use_motion: &use_motion true
+    use_motion: *use_motion
 
     pillar_vfe:
       use_norm: true
@@ -143,14 +153,14 @@ model:
         # number of encoder layers
         depth: 3
         use_roi_mask: true
-        use_RTE: &use_RTE true
+        use_RTE: *useRTE
         use_motion: *use_motion
         RTE_ratio: &RTE_ratio 2 # 2 means the dt has 100ms interval while 1 means 50 ms interval
         # agent-wise attention
         cav_att_config: &cav_att_config
           dim: 256
           use_hetero: true
-          use_RTE: *use_RTE
+          use_RTE: *useRTE
           RTE_ratio: *RTE_ratio
           heads: 8
           dim_head: 32

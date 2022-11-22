@@ -1,5 +1,8 @@
 import glob
 import importlib
+import statistics
+
+import tqdm
 import yaml
 import os
 import re
@@ -9,7 +12,7 @@ import torch
 import torch.optim as optim
 
 
-def load_saved_model(saved_path, model, device = None):
+def load_saved_model(saved_path, model, stage='stage1', load_epoch=None):
     """
     Load saved model if exiseted
 
@@ -27,8 +30,9 @@ def load_saved_model(saved_path, model, device = None):
     """
     assert os.path.exists(saved_path), '{} not found'.format(saved_path)
 
-    def findLastCheckpoint(save_dir):
-        file_list = glob.glob(os.path.join(save_dir, '*epoch*.pth'))
+    def findLastCheckpoint(save_dir, stage='stage1'):
+        str_path = 'net_epoch*.pth' if stage == 'stage1' else 'motion_epoch*.pth'
+        file_list = glob.glob(os.path.join(save_dir, str_path))
         if file_list:
             epochs_exist = []
             for file_ in file_list:
@@ -39,17 +43,39 @@ def load_saved_model(saved_path, model, device = None):
             initial_epoch_ = 0
         return initial_epoch_
 
-    initial_epoch = findLastCheckpoint(saved_path)
+    initial_epoch = findLastCheckpoint(saved_path, stage=stage) if load_epoch is None else load_epoch
     if initial_epoch > 0:
         print('resuming by loading epoch %d' % initial_epoch)
-        model.load_state_dict(torch.load(
-            os.path.join(saved_path,
-                         'net_epoch%d.pth' % initial_epoch), map_location=device), strict=False)
+        if stage == 'stage1':
+            model_name = os.path.join(saved_path, 'net_epoch%d.pth' % initial_epoch)
+        else:
+            model_name = os.path.join(saved_path, 'motion_epoch%d.pth' % initial_epoch)
+        model.load_state_dict(torch.load(model_name, map_location='cpu' if not torch.cuda.is_available() else None),
+                              strict=False)
 
     return initial_epoch, model
 
 
-def setup_train(hypes):
+def save_yaml(hypes, path):
+    """
+    Save the yaml file.
+
+    Parameters
+    ----------
+    hypes : dict
+        Configuration params for training.
+    path : str
+        Path to save the yaml file.
+    """
+    current_time = datetime.now()
+    yaml_name = current_time.strftime("_%Y_%m_%d_%H_%M_%S")
+    yaml_name = 'config' + yaml_name + '.yaml'
+    path = os.path.join(path, yaml_name)
+    with open(path, 'w') as outfile:
+        yaml.dump(hypes, outfile)
+
+
+def setup_train(hypes, hpyes_path=None):
     """
     Create folder for saved model based on current timestep and model name
 
@@ -64,7 +90,7 @@ def setup_train(hypes):
     folder_name = current_time.strftime("_%Y_%m_%d_%H_%M_%S")
     folder_name = model_name + folder_name
 
-    current_path = os.path.dirname(__file__)
+    current_path = os.path.dirname(__file__) if hpyes_path is None else os.path.dirname(hpyes_path)
     current_path = os.path.join(current_path, '../logs')
 
     full_path = os.path.join(current_path, folder_name)
@@ -79,7 +105,7 @@ def setup_train(hypes):
     return full_path
 
 
-def create_model(hypes):
+def create_model(hypes, stage='stage1'):
     """
     Import the module "models/[model_name].py
 
@@ -93,8 +119,9 @@ def create_model(hypes):
     model : opencood,object
         Model object.
     """
-    backbone_name = hypes['model']['core_method']
-    backbone_config = hypes['model']['args']
+    model_name = 'model' if stage is 'stage1' else 'motion_model'
+    backbone_name = hypes[model_name]['core_method']
+    backbone_config = hypes[model_name]['args']
 
     model_filename = "v2xvit.models." + backbone_name
     model_lib = importlib.import_module(model_filename)
@@ -115,7 +142,7 @@ def create_model(hypes):
     return instance
 
 
-def create_loss(hypes):
+def create_loss(hypes, stage='stage1'):
     """
     Create the loss function based on the given loss name.
 
@@ -128,8 +155,9 @@ def create_loss(hypes):
     criterion : opencood.object
         The loss function.
     """
-    loss_func_name = hypes['loss']['core_method']
-    loss_func_config = hypes['loss']['args']
+    loss_name = 'loss' if stage is 'stage1' else 'motion_loss'
+    loss_func_name = hypes[loss_name]['core_method']
+    loss_func_config = hypes[loss_name]['args']
 
     loss_filename = "v2xvit.loss." + loss_func_name
     loss_lib = importlib.import_module(loss_filename)
@@ -151,7 +179,7 @@ def create_loss(hypes):
     return criterion
 
 
-def setup_optimizer(hypes, model):
+def setup_optimizer(hypes, model, stage='stage1'):
     """
     Create optimizer corresponding to the yaml file
 
@@ -162,7 +190,7 @@ def setup_optimizer(hypes, model):
     model : opencood model
         The pytorch model
     """
-    method_dict = hypes['optimizer']
+    method_dict = hypes['optimizer'] if stage == 'stage1' else hypes['motion_optimizer']
     optimizer_method = getattr(optim, method_dict['core_method'], None)
     if not optimizer_method:
         raise ValueError('{} is not supported'.format(method_dict['name']))

@@ -2,6 +2,7 @@ import argparse
 import os
 import time
 
+import easydict
 import torch
 import open3d as o3d
 from torch.utils.data import DataLoader
@@ -12,13 +13,16 @@ from v2xvit.data_utils.datasets import build_dataset
 from v2xvit.visualization import vis_utils
 from v2xvit.utils import eval_utils
 
+DEBUG = False
 
 def test_parser():
     parser = argparse.ArgumentParser(description="synthetic data generation")
+    parser.add_argument('--hypes_yaml', type=str, required=True,
+                        help='hypes path')
     parser.add_argument('--model_dir', type=str, required=True,
                         help='Continued training path')
-    parser.add_argument('--fusion_method', required=True, type=str,
-                        default='late',
+    parser.add_argument('--fusion_method', required=False, type=str,
+                        default='intermediate',
                         help='late, early or intermediate')
     parser.add_argument('--show_vis', action='store_true',
                         help='whether to show image visualization result')
@@ -30,19 +34,35 @@ def test_parser():
     parser.add_argument('--save_npy', action='store_true',
                         help='whether to save prediction and gt result'
                              'in npy file')
+    parser.add_argument('--stage', required=False, type=str,
+                        default='stage3')
+    parser.add_argument('--load_epoch', required=False, type=int,
+                        default=None)
     opt = parser.parse_args()
     return opt
 
 
 def main():
-    opt = test_parser()
+    print(os.path.abspath('.'))
+    if DEBUG:
+        opt = easydict.EasyDict({'hypes_yaml': '/home/JJ_Group/cheny/v2x-vit/v2xvit/hypes_yaml/point_pillar_v2xvit_stage3.yaml',
+                                 'model_dir': '/home/JJ_Group/cheny/v2x-vit/v2xvit/logs/with_noise_motion_complete_second_order_simple',
+                                 'fusion_method': 'intermediate',
+                                 'save_npy': False,
+                                 'save_vis': False,
+                                 'show_vis': False,
+                                 'show_sequence': False,
+                                 'stage': 'stage3'})
+    else:
+        opt = test_parser()
     assert opt.fusion_method in ['late', 'early', 'intermediate']
     assert not (opt.show_vis and opt.show_sequence), \
         'you can only visualize ' \
         'the results in single ' \
         'image mode or video mode'
 
-    hypes = yaml_utils.load_yaml(None, opt)
+    hypes = yaml_utils.load_yaml(opt.hypes_yaml, opt)
+    stage = opt.stage
 
     print('Dataset Building')
     opencood_dataset = build_dataset(hypes, visualize=True, train=False)
@@ -56,14 +76,18 @@ def main():
 
     print('Creating Model')
     model = train_utils.create_model(hypes)
+    motion_model = train_utils.create_model(hypes, stage='stage2')
     # we assume gpu is necessary
     if torch.cuda.is_available():
         model.cuda()
+        motion_model.cuda()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+    if stage == 'stage3':
+        model.load_motion(motion_model)
     print('Loading Model from checkpoint')
     saved_path = opt.model_dir
-    _, model = train_utils.load_saved_model(saved_path, model, device=device)
+    _, model = train_utils.load_saved_model(saved_path, model, load_epoch=opt.load_epoch)
+    print('Model Loaded , epoch: {}'.format(_))
     model.eval()
 
     # Create the dictionary for evaluation
