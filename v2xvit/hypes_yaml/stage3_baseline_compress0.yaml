@@ -3,14 +3,14 @@ root_dir: '/home/JJ_Group/datasets/V2X/v2xset/train'
 validate_dir: '/home/JJ_Group/datasets/V2X/v2xset/validate'
 
 stage: 'stage3'
-useRTE: &useRTE false
-use_motion: &use_motion true
+useRTE: &useRTE true
+use_motion: &use_motion false
 compression: &compression 0
 async: &async true
 loc_err: &loc_err true
 only_least_squares: &only_least_squares true
-learnable_backbone: &learnable_backbone false
-learnable_motion: &learnable_motion true
+learnable_backbone: &learnable_backbone true
+build_motion_data: &build_motion_data false
 
 wild_setting:
   async: *async
@@ -26,8 +26,8 @@ wild_setting:
 
 yaml_parser: "load_point_pillar_params"
 train_params:
-  batch_size: &batch_size 1
-  epoches: 79
+  batch_size: &batch_size 2
+  epoches: 72
   eval_freq: 1
   save_freq: 1
   max_cav: &max_cav 5
@@ -63,7 +63,7 @@ fusion:
   core_method: 'IntermediateFusionDataset' # LateFusionDataset, EarlyFusionDataset, IntermediateFusionDataset supported
   args:
     cur_ego_pose_flag: False
-    build_motion_data: True
+    build_motion_data: *build_motion_data
     his_len: *his_len
       # when the cur_ego_pose_flag is set to True, there is no time gap
       # between  the time when the LiDAR data is captured by connected
@@ -117,7 +117,6 @@ model:
   core_method: point_pillar_transformer
   args:
     learnable_backbone: *learnable_backbone
-    learnable_motion: *learnable_motion
     voxel_size: *voxel_size
     lidar_range: *cav_lidar
     anchor_number: *achor_num

@@ -27,7 +27,7 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
             self.build_motion_data = params['fusion']['args']['build_motion_data']
         except KeyError:
             self.build_motion_data = False
-        self.his_len = self.params['fusion']['args']['his_len'] if self.build_motion_data else None
+        self.his_len = self.params['fusion']['args']['his_len'] if self.build_motion_data else 0
         self.pre_processor = build_preprocessor(params['preprocess'],
                                                 train)
         self.post_processor = post_processor.build_postprocessor(
@@ -371,7 +371,7 @@ class IntermediateFusionDataset(basedataset.BaseDataset):
         processed_lidar_torch_dict = \
             self.pre_processor.collate_batch(merged_feature_dict)
         history_torch_dict = \
-            self.pre_processor.collate_batch(merged_history_dict)
+            self.pre_processor.collate_batch(merged_history_dict) if self.build_motion_data else None
         # [2, 3, 4, ..., M]
         record_len = torch.from_numpy(np.array(record_len, dtype=int))
         label_torch_dict = \

@@ -3,14 +3,14 @@ root_dir: '/home/JJ_Group/datasets/V2X/v2xset/train'
 validate_dir: '/home/JJ_Group/datasets/V2X/v2xset/validate'
 
 stage: 'stage3'
-useRTE: &useRTE false
+useRTE: &useRTE true
 use_motion: &use_motion true
 compression: &compression 0
 async: &async true
 loc_err: &loc_err true
 only_least_squares: &only_least_squares true
-learnable_backbone: &learnable_backbone false
-learnable_motion: &learnable_motion true
+learnable_backbone: &learnable_backbone true
+learnable_motion: &learnable_motion false
 
 wild_setting:
   async: *async
@@ -27,7 +27,7 @@ wild_setting:
 yaml_parser: "load_point_pillar_params"
 train_params:
   batch_size: &batch_size 1
-  epoches: 79
+  epoches: 72
   eval_freq: 1
   save_freq: 1
   max_cav: &max_cav 5

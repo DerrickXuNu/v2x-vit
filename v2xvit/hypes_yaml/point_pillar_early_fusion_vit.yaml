@@ -1,75 +1,26 @@
-name: point_pillar_v2xvit
+name: point_pillar_early_fusion
 root_dir: '/home/JJ_Group/datasets/V2X/v2xset/train'
 validate_dir: '/home/JJ_Group/datasets/V2X/v2xset/validate'
-
-stage: 'stage3'
-useRTE: &useRTE false
-use_motion: &use_motion true
-compression: &compression 0
-async: &async true
-loc_err: &loc_err true
-only_least_squares: &only_least_squares true
-learnable_backbone: &learnable_backbone false
-learnable_motion: &learnable_motion true
+yaml_parser: "load_point_pillar_params"
+use_motion: false
 
 wild_setting:
-  async: *async
-  async_mode: 'sim'
-  async_overhead: 100
-  seed: 25
-  loc_err: *loc_err
+  async: false
+  async_overhead: 60
+  seed: 20
+  loc_err: false
   xyz_std: 0.2
   ryp_std: 0.2
-  data_size: 1.06 # Mb!!
-  transmission_speed: 27 # Mbps!!
-  backbone_delay: 10 # ms
 
-yaml_parser: "load_point_pillar_params"
 train_params:
-  batch_size: &batch_size 1
-  epoches: 79
-  eval_freq: 1
-  save_freq: 1
-  max_cav: &max_cav 5
-
-motion_train_params:
-  batch_size: 2
-  history_frame: 2
+  batch_size: &batch_size 4
   epoches: 60
   eval_freq: 1
   save_freq: 1
 
-motion_method:
-  core_method: "motionDataset"
-  args:
-    cur_ego_pose_flag: False
-    N: &his_len 4
-    k: [1,2,3]
-
-motion_model:
-  core_method: "second_order_motion"
-  args:
-    only_least_squares: *only_least_squares
-    optical_flow:
-      out_channels: 256
-
-
-motion_loss:
-  core_method: "MSE"
-  args:
-
-
 fusion:
-  core_method: 'IntermediateFusionDataset' # LateFusionDataset, EarlyFusionDataset, IntermediateFusionDataset supported
-  args:
-    cur_ego_pose_flag: False
-    build_motion_data: True
-    his_len: *his_len
-      # when the cur_ego_pose_flag is set to True, there is no time gap
-      # between  the time when the LiDAR data is captured by connected
-      # agents and when the extracted features are received by
-      # the ego vehicle, which is equal to implement STCM. When set to False,
-      # STCM has to be used.
+  core_method: 'EarlyFusionDataset' # LateFusionDataset, EarlyFusionDataset, IntermediateFusionDataset supported
+  args: []
 
 # preprocess-related
 preprocess:
@@ -102,31 +53,23 @@ postprocess:
     w: 1.6
     h: 1.56
     r: [0, 90]
-    feature_stride: 4
     num: &achor_num 2
+    feature_stride: 4
   target_args:
     pos_threshold: 0.6
     neg_threshold: 0.45
-    score_threshold: 0.27
+    score_threshold: 0.20
   order: 'hwl' # hwl or lwh
   max_num: 100 # maximum number of objects in a single frame. use this number to make sure different frames has the same dimension in the same batch
   nms_thresh: 0.15
 
 # model related
 model:
-  core_method: point_pillar_transformer
+  core_method: point_pillar_efvit
   args:
-    learnable_backbone: *learnable_backbone
-    learnable_motion: *learnable_motion
     voxel_size: *voxel_size
     lidar_range: *cav_lidar
     anchor_number: *achor_num
-    max_cav: *max_cav
-    compression: *compression # compression rate
-    backbone_fix: false
-    his_len: *his_len
-    use_motion: *use_motion
-
     pillar_vfe:
       use_norm: true
       with_distance: false
@@ -141,11 +84,12 @@ model:
       num_filters: [64, 128, 256]
       upsample_strides: [1, 2, 4]
       num_upsample_filter: [128, 128, 128]
+
     shrink_header:
-      kernal_size: [3]
-      stride: [2]
-      padding: [1]
-      dim: [256]
+      kernal_size: [ 3 ]
+      stride: [ 2 ]
+      padding: [ 1 ]
+      dim: [ 256 ]
       input_dim: 384 # 128 * 3
 
     transformer:
@@ -155,14 +99,14 @@ model:
         # number of encoder layers
         depth: 3
         use_roi_mask: true
-        use_RTE: *useRTE
-        use_motion: *use_motion
+        use_RTE: &use_RTE false
+        use_motion: false
         RTE_ratio: &RTE_ratio 2 # 2 means the dt has 100ms interval while 1 means 50 ms interval
         # agent-wise attention
         cav_att_config: &cav_att_config
           dim: 256
           use_hetero: true
-          use_RTE: *useRTE
+          use_RTE: *use_RTE
           RTE_ratio: *RTE_ratio
           heads: 8
           dim_head: 32
@@ -170,10 +114,10 @@ model:
         # spatial-wise attention
         pwindow_att_config: &pwindow_att_config
           dim: 256
-          heads: [16, 8, 4]
-          dim_head: [16, 32, 64]
+          heads: [ 16, 8, 4 ]
+          dim_head: [ 16, 32, 64 ]
           dropout: 0.3
-          window_size: [4, 8, 16]
+          window_size: [ 4, 8, 16 ]
           relative_pos_embedding: true
           fusion_method: 'split_attn'
         # feedforward condition
@@ -184,7 +128,9 @@ model:
           voxel_size: *voxel_size
           downsample_rate: 4
 
-      # add decoder later
+    cls_head_dim: 256
+
+    anchor_num: *achor_num
 
 loss:
   core_method: point_pillar_loss
@@ -194,7 +140,7 @@ loss:
 
 optimizer:
   core_method: Adam
-  lr: 0.001
+  lr: 0.002
   args:
     eps: 1e-10
     weight_decay: 1e-4
@@ -202,11 +148,5 @@ optimizer:
 lr_scheduler:
   core_method: multistep #step, multistep and Exponential support
   gamma: 0.1
-  step_size: [15, 50]
+  step_size: [20, 30]
 
-motion_optimizer:
-  core_method: Adam
-  lr: 0.001
-  args:
-    eps: 1e-10
-    weight_decay: 1e-2

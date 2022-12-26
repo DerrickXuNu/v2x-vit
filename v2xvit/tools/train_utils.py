@@ -249,4 +249,6 @@ def to_device(inputs, device):
         if isinstance(inputs, int) or isinstance(inputs, float) \
                 or isinstance(inputs, str):
             return inputs
+        if inputs is None:
+            return inputs
         return inputs.to(device)

@@ -6,6 +6,7 @@ import easydict
 import torch
 import open3d as o3d
 from torch.utils.data import DataLoader
+import tqdm
 
 import v2xvit.hypes_yaml.yaml_utils as yaml_utils
 from v2xvit.tools import train_utils, infrence_utils
@@ -13,7 +14,7 @@ from v2xvit.data_utils.datasets import build_dataset
 from v2xvit.visualization import vis_utils
 from v2xvit.utils import eval_utils
 
-DEBUG = False
+DEBUG = True
 
 def test_parser():
     parser = argparse.ArgumentParser(description="synthetic data generation")
@@ -45,14 +46,15 @@ def test_parser():
 def main():
     print(os.path.abspath('.'))
     if DEBUG:
-        opt = easydict.EasyDict({'hypes_yaml': '/home/JJ_Group/cheny/v2x-vit/v2xvit/hypes_yaml/point_pillar_v2xvit_stage3.yaml',
-                                 'model_dir': '/home/JJ_Group/cheny/v2x-vit/v2xvit/logs/with_noise_motion_complete_second_order_simple',
-                                 'fusion_method': 'intermediate',
+        opt = easydict.EasyDict({'hypes_yaml': '/home/JJ_Group/cheny/v2x-vit/v2xvit/hypes_yaml/point_pillar_early_fusion_vit.yaml',
+                                 'model_dir': '/home/JJ_Group/cheny/v2x-vit/v2xvit/logs/point_pillar_early_fusion_mswin',
+                                 'fusion_method': 'early',
                                  'save_npy': False,
                                  'save_vis': False,
                                  'show_vis': False,
                                  'show_sequence': False,
-                                 'stage': 'stage3'})
+                                 'load_epoch': 48,
+                                 'stage': 'stage1'})
     else:
         opt = test_parser()
     assert opt.fusion_method in ['late', 'early', 'intermediate']
@@ -76,11 +78,14 @@ def main():
 
     print('Creating Model')
     model = train_utils.create_model(hypes)
-    motion_model = train_utils.create_model(hypes, stage='stage2')
+    motion_model = None
+    if hypes['use_motion']:
+        motion_model = train_utils.create_model(hypes, stage='stage2')
     # we assume gpu is necessary
     if torch.cuda.is_available():
         model.cuda()
-        motion_model.cuda()
+        if motion_model is not None:
+            motion_model.cuda()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if stage == 'stage3':
         model.load_motion(motion_model)
@@ -112,8 +117,10 @@ def main():
             vis_aabbs_gt.append(o3d.geometry.LineSet())
             vis_aabbs_pred.append(o3d.geometry.LineSet())
 
+    pbar2 = tqdm.tqdm(total=len(data_loader), leave=True)
     for i, batch_data in enumerate(data_loader):
-        print(i)
+        # print(i)
+        pbar2.update(1)
         with torch.no_grad():
             if device == 'cuda':
                 torch.cuda.synchronize()

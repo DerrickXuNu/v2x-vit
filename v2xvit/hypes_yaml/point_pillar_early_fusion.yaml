@@ -1,7 +1,8 @@
 name: point_pillar_early_fusion
-root_dir: 'v2xset/train'
-validate_dir: 'v2xset/validate'
+root_dir: '/home/JJ_Group/datasets/V2X/v2xset/train'
+validate_dir: '/home/JJ_Group/datasets/V2X/v2xset/validate'
 yaml_parser: "load_point_pillar_params"
+use_motion: false
 
 wild_setting:
   async: false

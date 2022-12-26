@@ -48,6 +48,8 @@ class EarlyFusionDataset(basedataset.BaseDataset):
         object_stack = []
         object_id_stack = []
 
+        spatial_correction_matrix = []
+
         # loop over all CAVs to process information
         for cav_id, selected_cav_base in base_data_dict.items():
             # check if the cav is within the communication range with ego
@@ -69,6 +71,8 @@ class EarlyFusionDataset(basedataset.BaseDataset):
                 selected_cav_processed['projected_lidar'])
             object_stack.append(selected_cav_processed['object_bbx_center'])
             object_id_stack += selected_cav_processed['object_ids']
+            spatial_correction_matrix.append(
+                selected_cav_base['params']['spatial_correction_matrix'])
 
         # exclude all repetitive objects
         unique_indices = \
@@ -105,6 +109,7 @@ class EarlyFusionDataset(basedataset.BaseDataset):
                                                          'order']
                                                      )
         mask[object_bbx_center_valid.shape[0]:] = 0
+        unique_indices = unique_indices[:object_bbx_center_valid.shape[0]]
         object_bbx_center[:object_bbx_center_valid.shape[0]] = \
             object_bbx_center_valid
         object_bbx_center[object_bbx_center_valid.shape[0]:] = 0
@@ -122,12 +127,18 @@ class EarlyFusionDataset(basedataset.BaseDataset):
                 anchors=anchor_box,
                 mask=mask)
 
+        spatial_correction_matrix = np.stack([spatial_correction_matrix[0]])
+
         processed_data_dict['ego'].update(
             {'object_bbx_center': object_bbx_center,
              'object_bbx_mask': mask,
              'object_ids': [object_id_stack[i] for i in unique_indices],
              'anchor_box': anchor_box,
              'processed_lidar': lidar_dict,
+             'spatial_correction_matrix': spatial_correction_matrix,
+             'velocity': [0],
+             'time_delay': [0],
+             'infra': [0],
              'label_dict': label_dict})
 
         if self.visualize:
@@ -209,6 +220,15 @@ class EarlyFusionDataset(basedataset.BaseDataset):
                 torch.from_numpy(np.array([cav_content['object_bbx_mask']]))
             object_ids = cav_content['object_ids']
 
+            velocity = torch.from_numpy(np.array([cav_content['velocity']]))
+            time_delay = torch.from_numpy(np.array([cav_content['time_delay']]))
+            infra = torch.from_numpy(np.array([cav_content["infra"]]))
+            prior_encoding = \
+                torch.stack([velocity, time_delay, infra], dim=-1).float()
+            record_len = torch.from_numpy(np.array([1], dtype=int))
+            spatial_correction_matrix_list = \
+                torch.from_numpy(np.array([cav_content['spatial_correction_matrix']]))
+
             # the anchor box is the same for all bounding boxes usually, thus
             # we don't need the batch dimension.
             if cav_content['anchor_box'] is not None:
@@ -234,6 +254,9 @@ class EarlyFusionDataset(basedataset.BaseDataset):
             output_dict[cav_id].update({'object_bbx_center': object_bbx_center,
                                         'object_bbx_mask': object_bbx_mask,
                                         'processed_lidar': processed_lidar_torch_dict,
+                                        'spatial_correction_matrix': spatial_correction_matrix_list,
+                                        'prior_encoding': prior_encoding,
+                                        'record_len': record_len,
                                         'label_dict': label_torch_dict,
                                         'object_ids': object_ids,
                                         'transformation_matrix': transformation_matrix_torch})
@@ -244,6 +267,83 @@ class EarlyFusionDataset(basedataset.BaseDataset):
                         downsample_lidar_minimum(pcd_np_list=origin_lidar))
                 origin_lidar = torch.from_numpy(origin_lidar)
                 output_dict[cav_id].update({'origin_lidar': origin_lidar})
+
+        return output_dict
+
+    def collate_batch_train(self, batch):
+        """
+        Customized collate function for pytorch dataloader during training
+        for late fusion dataset.
+
+        Parameters
+        ----------
+        batch : dict
+
+        Returns
+        -------
+        batch : dict
+            Reformatted batch.
+        """
+        # during training, we only care about ego.
+        output_dict = {'ego': {}}
+
+        object_bbx_center = []
+        object_bbx_mask = []
+        processed_lidar_list = []
+        label_dict_list = []
+
+        spatial_correction_matrix_list = []
+        record_len = []
+        velocity = []
+        time_delay = []
+        infra = []
+
+        if self.visualize:
+            origin_lidar = []
+
+        for i in range(len(batch)):
+            ego_dict = batch[i]['ego']
+            object_bbx_center.append(ego_dict['object_bbx_center'])
+            object_bbx_mask.append(ego_dict['object_bbx_mask'])
+            processed_lidar_list.append(ego_dict['processed_lidar'])
+            label_dict_list.append(ego_dict['label_dict'])
+            record_len.append(1)
+            velocity.append(ego_dict['velocity'])
+            time_delay.append(ego_dict['time_delay'])
+            infra.append(ego_dict['infra'])
+            spatial_correction_matrix_list.append(ego_dict['spatial_correction_matrix'])
+
+            if self.visualize:
+                origin_lidar.append(ego_dict['origin_lidar'])
+
+        # convert to numpy, (B, max_num, 7)
+        object_bbx_center = torch.from_numpy(np.array(object_bbx_center))
+        object_bbx_mask = torch.from_numpy(np.array(object_bbx_mask))
+
+        velocity = torch.from_numpy(np.array(velocity))
+        time_delay = torch.from_numpy(np.array(time_delay))
+        infra = torch.from_numpy(np.array(infra))
+        prior_encoding = \
+            torch.stack([velocity, time_delay, infra], dim=-1).float()
+        record_len = torch.from_numpy(np.array(record_len, dtype=int))
+        spatial_correction_matrix_list = \
+            torch.from_numpy(np.array(spatial_correction_matrix_list))
+        processed_lidar_torch_dict = \
+            self.pre_processor.collate_batch(processed_lidar_list)
+        label_torch_dict = \
+            self.post_processor.collate_batch(label_dict_list)
+        output_dict['ego'].update({'object_bbx_center': object_bbx_center,
+                                   'object_bbx_mask': object_bbx_mask,
+                                   'processed_lidar': processed_lidar_torch_dict,
+                                   'prior_encoding': prior_encoding,
+                                   'spatial_correction_matrix': spatial_correction_matrix_list,
+                                   'record_len': record_len,
+                                   'label_dict': label_torch_dict})
+        if self.visualize:
+            origin_lidar = \
+                np.array(downsample_lidar_minimum(pcd_np_list=origin_lidar))
+            origin_lidar = torch.from_numpy(origin_lidar)
+            output_dict['ego'].update({'origin_lidar': origin_lidar})
 
         return output_dict
 

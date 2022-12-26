@@ -15,7 +15,7 @@ from v2xvit.tools import train_utils
 from v2xvit.data_utils.datasets import build_dataset, build_motion_dataset
 from v2xvit.tools.train_utils import to_device
 
-DEBUG = False
+DEBUG = True
 
 def set_random_seed(seed, deterministic=False):
     """Set random seed.
@@ -69,10 +69,14 @@ def debuging(hypes):
 def main():
     print(os.path.abspath('.'))
     if DEBUG:
-        opt = easydict.EasyDict({'hypes_yaml': "/home/JJ_Group/cheny/v2x-vit/v2xvit/hypes_yaml/point_pillar_v2xvit_stage3_NotUseRTE_learnable_motion_bs1.yaml",
-                                 'model_dir': '/home/JJ_Group/cheny/v2x-vit/v2xvit/logs/with_noise_motion_complete_second_order_simple_learnable_Motion_bs1/',
+        opt = easydict.EasyDict({'hypes_yaml': "/home/JJ_Group/cheny/v2x-vit/v2xvit/hypes_yaml/point_pillar_early_fusion_vit.yaml",
+                                 'model_dir': '/home/JJ_Group/cheny/v2x-vit/v2xvit/logs/point_pillar_early_fusion_mswin/',
                                  'half': False,
-                                 'stage': 'stage3'})
+                                 'stage': 'stage1'})
+        # opt = easydict.EasyDict({   'hypes_yaml': "/home/JJ_Group/cheny/v2x-vit/v2xvit/hypes_yaml/point_pillar_v2xvit_stage3_NotUseRTE_learnable_motion_bs1.yaml",
+        #                             'model_dir': '/home/JJ_Group/cheny/v2x-vit/v2xvit/logs/with_noise_motion_complete_second_order_simple_learnable_Motion_bs1/',
+        #                             'half': False,
+        #                             'stage': 'stage3'})
         # opt = easydict.EasyDict({'hypes_yaml': '../../v2xvit/hypes_yaml/point_pillar_v2xvit.yaml',
         #                          'model_dir': '/home/JJ_Group/cheny/v2x-vit/v2xvit/logs/motion_second_order_simple',
         #                          'half': False,
@@ -86,7 +90,6 @@ def main():
     print('stage: ', stage)
 
     set_random_seed(666, True)
-    # debuging(hypes)
 
     print('Dataset Building')
     # dataset:
@@ -139,11 +142,11 @@ def main():
 
     print('Creating Model')
     model = train_utils.create_model(hypes)
-    try:
+    if hypes['use_motion'] or stage == 'stage2':
         motion_model = train_utils.create_model(hypes, stage='stage2')
-    except:
+        print('motion model created')
+    else:
         motion_model = None
-        print('no motion model!!!!!!')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # we assume gpu is necessary
@@ -252,9 +255,9 @@ def main():
             validate_main_model(model, val_loader, criterion, device, writer, epoch)
 
 
-    from v2xvit.data_utils.datasets.basedataset import max_timedelay
-    print(max_timedelay)
-    print('max_timedelay', max(max_timedelay))
+    # from v2xvit.data_utils.datasets.basedataset import max_timedelay
+    # print(max_timedelay)
+    # print('max_timedelay', max(max_timedelay))
     print('Training Finished, checkpoints saved to %s' % saved_path)
 
 

@@ -15,13 +15,15 @@ class STTF(nn.Module):
         self.downsample_rate = args['downsample_rate']
 
     def forward(self, x, mask, spatial_correction_matrix):
-        x = x.permute(0, 1, 4, 2, 3)
+        x = x.permute(0, 1, 4, 2, 3)    # B L H W C -> B L C H W
         dist_correction_matrix = get_discretized_transformation_matrix(
             spatial_correction_matrix, self.discrete_ratio,
             self.downsample_rate)
         # Only compensate non-ego vehicles
         B, L, C, H, W = x.shape
-
+        if L == 1:
+            x = x.permute(0, 1, 3, 4, 2)
+            return x
         T = get_transformation_matrix(
             dist_correction_matrix[:, 1:, :, :].reshape(-1, 2, 3), (H, W))
         cav_features = warp_affine(x[:, 1:, :, :, :].reshape(-1, C, H, W), T,
