@@ -12,6 +12,8 @@ This is the official implementation of ECCV2022 paper "V2X-ViT: Vehicle-to-Every
 
 UCLA, UT-Austin, Google Research, UC-Merced
 
+**Important Notice**: [OpenCOOD](https://github.com/DerrickXuNu/OpenCOOD) supports V2X-ViT and V2XSet now! We will **no longer** update this repo, and all the new features (e.g. multi gpu implementation) will only be updated in OpenCOOD.
+
 ![teaser](images/v2xvit.png)
 
 ## Installation
