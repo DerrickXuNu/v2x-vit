@@ -47,7 +47,7 @@ The data can be found from [google url](https://drive.google.com/drive/folders/1
 is very large, we  split each data set into small chunks, which can be found in the directory ending with `_chunks`, such as `train_chunks`. After downloading, please run the following command to each set to merge those chunks together:
 
 ```
-cat train.zip.parta* > train.zip
+cat train.zip.part* > train.zip
 unzip train.zip
 ```
 If you have good internet, you can also directly download the whole zip file, e.g. train.zip
