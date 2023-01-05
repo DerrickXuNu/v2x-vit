@@ -50,6 +50,7 @@ is very large, we  split each data set into small chunks, which can be found in 
 cat train.zip.parta* > train.zip
 unzip train.zip
 ```
+If you have good internet, you can also directly download the whole zip file, e.g. train.zip
 ### Structure
 After downloading is finished, please make the file structured as following:
 
