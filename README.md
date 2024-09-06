@@ -43,7 +43,7 @@ python setup.py develop
 
 ## Data
 ### Download
-The data can be found from [google url](https://drive.google.com/drive/folders/1r5sPiBEvo8Xby-nMaWUTnJIPK6WhY1B6?usp=sharing).  Since the data for train/validate/test
+The data can be found from [this url](https://ucla.app.box.com/v/UCLA-MobilityLab-V2XVIT).  Since the data for train/validate/test
 is very large, we  split each data set into small chunks, which can be found in the directory ending with `_chunks`, such as `train_chunks`. After downloading, please run the following command to each set to merge those chunks together:
 
 ```
